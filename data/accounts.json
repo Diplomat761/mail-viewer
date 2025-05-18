@@ -8,7 +8,7 @@
     "smtpHost": "mail.1vps.tech",
     "smtpPort": 465,
     "id": "1747502662601",
-    "active": false
+    "active": true
   },
   {
     "email": "info@vnukm.com",
@@ -19,6 +19,6 @@
     "smtpHost": "mail.1vps.tech",
     "smtpPort": 465,
     "id": "1747503155254",
-    "active": true
+    "active": false
   }
 ]

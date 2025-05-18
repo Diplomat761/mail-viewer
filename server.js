@@ -139,22 +139,22 @@ app.post('/accounts/delete', (req, res) => {
 
 // Получение списка писем
 app.get('/emails', (req, res) => {
-  const activeAccount = accountsModel.getActiveAccount();
+  const accounts = accountsModel.getAccounts();
   
-  if (!activeAccount) {
-    return res.redirect('/?error=Нет активного аккаунта');
+  if (!accounts || accounts.length === 0) {
+    return res.redirect('/?error=Нет добавленных аккаунтов');
   }
   
-  console.log('Начинаем получение писем...');
-  fetchEmails(activeAccount, (error, emails) => {
+  console.log('Начинаем получение писем со всех аккаунтов...');
+  fetchEmailsFromAllAccounts(accounts, (error, allEmails) => {
     if (error) {
       console.error('Ошибка при получении писем:', error);
       return res.status(500).render('error', { error: error.message });
     }
-    console.log(`Получено писем: ${emails.length}`);
+    console.log(`Всего получено писем: ${allEmails.length}`);
     // Сортируем письма по дате (новые в начале)
-    emails.sort((a, b) => new Date(b.date) - new Date(a.date));
-    res.render('emails', { emails });
+    allEmails.sort((a, b) => new Date(b.date) - new Date(a.date));
+    res.render('emails', { emails: allEmails });
   });
 });
 
@@ -189,6 +189,42 @@ app.post('/send', upload.array('attachments'), async (req, res) => {
     res.status(500).render('error', { error: error.message });
   }
 });
+
+// Функция для получения писем со всех аккаунтов
+function fetchEmailsFromAllAccounts(accounts, callback) {
+  const allEmails = [];
+  let completedRequests = 0;
+  let hasErrors = false;
+  
+  if (accounts.length === 0) {
+    return callback(null, []);
+  }
+  
+  accounts.forEach(account => {
+    fetchEmails(account, (error, emails) => {
+      completedRequests++;
+      
+      if (error) {
+        console.error(`Ошибка при получении писем для аккаунта ${account.email}:`, error);
+        hasErrors = true;
+      } else if (emails && emails.length > 0) {
+        // Добавляем информацию об аккаунте к каждому письму
+        const emailsWithAccount = emails.map(email => ({
+          ...email,
+          accountEmail: account.email,
+          accountName: account.name || account.email
+        }));
+        
+        allEmails.push(...emailsWithAccount);
+      }
+      
+      // Когда все запросы завершены, вызываем колбэк
+      if (completedRequests === accounts.length) {
+        callback(null, allEmails);
+      }
+    });
+  });
+}
 
 // Функция для получения писем
 function fetchEmails(account, callback) {

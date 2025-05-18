@@ -30,6 +30,12 @@
                   <small><%= new Date(email.date).toLocaleString('ru-RU') %></small>
                 </div>
                 <p class="mb-1"><%= email.from %></p>
+                <div class="d-flex justify-content-between">
+                  <small class="text-muted"><%= email.accountName %></small>
+                  <% if (email.attachments && email.attachments.length > 0) { %>
+                    <small><i class="bi bi-paperclip"></i> <%= email.attachments.length %></small>
+                  <% } %>
+                </div>
               </a>
             <% }); %>
           </div>
@@ -46,6 +52,7 @@
                 <div class="email-headers mb-3">
                   <p><strong>От:</strong> <%= email.from %></p>
                   <p><strong>Кому:</strong> <%= email.to %></p>
+                  <p><strong>Аккаунт:</strong> <%= email.accountName %></p>
                 </div>
                 
                 <hr>
