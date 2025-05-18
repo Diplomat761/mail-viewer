@@ -10,7 +10,7 @@ const { sendEmail } = require('./send-email');
 const accountsModel = require('./models/accounts');
 
 const app = express();
-const port = 4000;
+const port = 3000;
 
 // Настройка для загрузки файлов
 const storage = multer.diskStorage({
