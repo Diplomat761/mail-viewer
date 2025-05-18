@@ -5,11 +5,95 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Просмотр почты</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .breadcrumb-item a {
+      text-decoration: none;
+    }
+    .email-preview {
+      max-height: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .email-preview-html {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: normal;
+      border-left: 3px solid #e9ecef;
+      padding-left: 10px;
+      margin: 5px 0;
+      color: #6c757d;
+    }
+    .email-preview-html img {
+      display: none;
+    }
+    
+    /* Адаптивные стили */
+    @media (max-width: 767.98px) {
+      .container {
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+      h1 {
+        font-size: 1.75rem;
+      }
+      .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .page-header .btn {
+        margin-top: 10px;
+        align-self: flex-start;
+      }
+      .list-group-item {
+        padding: 12px;
+      }
+      .email-item-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .email-item-header small {
+        margin-top: 5px;
+      }
+      .email-preview {
+        white-space: normal;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+      .email-actions {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .email-actions .text-muted {
+        margin-bottom: 5px;
+      }
+      .email-actions .action-buttons {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+      }
+      .action-buttons .btn {
+        flex-grow: 1;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Главная</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Входящие сообщения</li>
+      </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4 page-header">
       <h1>Входящие сообщения</h1>
       <a href="/" class="btn btn-outline-secondary">Назад</a>
     </div>
@@ -20,80 +104,65 @@
       </div>
     <% } else { %>
       <div class="row">
-        <div class="col-md-4">
+        <div class="col-12">
           <div class="list-group mb-4">
             <% emails.forEach((email, index) => { %>
-              <a href="#email-<%= email.id %>" class="list-group-item list-group-item-action"
-                 onclick="showEmail(<%= index %>)">
-                <div class="d-flex w-100 justify-content-between">
-                  <h5 class="mb-1"><%= email.subject || 'Без темы' %></h5>
+              <div class="list-group-item">
+                <div class="d-flex w-100 justify-content-between mb-2 email-item-header">
+                  <h5 class="mb-1 text-break"><%= email.subject || 'Без темы' %></h5>
                   <small><%= new Date(email.date).toLocaleString('ru-RU') %></small>
                 </div>
-                <p class="mb-1"><%= email.from %></p>
-                <div class="d-flex justify-content-between">
-                  <small class="text-muted"><%= email.accountName %></small>
-                  <% if (email.attachments && email.attachments.length > 0) { %>
-                    <small><i class="bi bi-paperclip"></i> <%= email.attachments.length %></small>
+                <p class="mb-1 text-break"><strong>От:</strong> <%= email.from %></p>
+                <p class="mb-1 text-break"><strong>Кому:</strong> <%= email.to %></p>
+                
+                <div class="email-preview mb-2">
+                  <% 
+                    const hasHtml = email.hasHtml || 
+                      email.text.includes('<html') || 
+                      email.text.includes('<body') || 
+                      email.text.includes('<div') || 
+                      email.text.includes('<table') ||
+                      email.text.includes('<img');
+                  %>
+                  
+                  <% if (hasHtml) { %>
+                    <div class="email-preview-html">
+                      <% 
+                        // Создаем безопасное превью HTML
+                        let preview = email.text;
+                        // Удаляем теги script и style с содержимым
+                        preview = preview.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+                        preview = preview.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+                        // Обрезаем до 300 символов для вырезания текста
+                        preview = preview.substring(0, 3000);
+                      %>
+                      <%- preview %>
+                    </div>
+                  <% } else { %>
+                    <small class="text-muted"><%= email.text.substring(0, 150) %>...</small>
                   <% } %>
                 </div>
-              </a>
+                
+                <div class="d-flex justify-content-between align-items-center email-actions">
+                  <small class="text-muted text-break"><%= email.accountName %></small>
+                  <div class="action-buttons">
+                    <% if (email.attachments && email.attachments.length > 0) { %>
+                      <span class="badge bg-secondary me-2">
+                        <i class="bi bi-paperclip"></i> <%= email.attachments.length %>
+                      </span>
+                    <% } %>
+                    <a href="/email/<%= sessionId %>/<%= index %>" class="btn btn-primary btn-sm">
+                      Просмотреть
+                    </a>
+                  </div>
+                </div>
+              </div>
             <% }); %>
           </div>
-        </div>
-        
-        <div class="col-md-8">
-          <% emails.forEach((email, index) => { %>
-            <div id="email-content-<%= index %>" class="email-content card mb-4" style="<%= index === 0 ? '' : 'display: none;' %>">
-              <div class="card-header d-flex justify-content-between">
-                <h5><%= email.subject || 'Без темы' %></h5>
-                <small><%= new Date(email.date).toLocaleString('ru-RU') %></small>
-              </div>
-              <div class="card-body">
-                <div class="email-headers mb-3">
-                  <p><strong>От:</strong> <%= email.from %></p>
-                  <p><strong>Кому:</strong> <%= email.to %></p>
-                  <p><strong>Аккаунт:</strong> <%= email.accountName %></p>
-                </div>
-                
-                <hr>
-                
-                <div class="email-body mb-3">
-                  <% if (email.text.includes('<html') || email.text.includes('<body')) { %>
-                    <div class="html-content"><%- email.text %></div>
-                  <% } else { %>
-                    <div class="text-content"><%= email.text %></div>
-                  <% } %>
-                </div>
-                
-                <% if (email.attachments && email.attachments.length > 0) { %>
-                  <hr>
-                  <div class="email-attachments">
-                    <h6>Вложения:</h6>
-                    <div class="list-group">
-                      <% email.attachments.forEach(attachment => { %>
-                        <a href="<%= attachment.path %>" class="list-group-item list-group-item-action" target="_blank">
-                          <i class="bi bi-paperclip"></i> <%= attachment.filename %>
-                        </a>
-                      <% }); %>
-                    </div>
-                  </div>
-                <% } %>
-              </div>
-            </div>
-          <% }); %>
         </div>
       </div>
     <% } %>
   </div>
-
-  <script>
-    function showEmail(index) {
-      document.querySelectorAll('.email-content').forEach(content => {
-        content.style.display = 'none';
-      });
-      document.getElementById(`email-content-${index}`).style.display = 'block';
-    }
-  </script>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

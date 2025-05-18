@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= email.subject || 'Без темы' %></title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .breadcrumb-item a {
+      text-decoration: none;
+    }
+    .email-content img {
+      max-width: 100%;
+      height: auto;
+    }
+    .pagination-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 20px;
+    }
+    
+    /* Стили для HTML-содержимого */
+    .html-content {
+      width: 100%;
+      overflow-x: auto;
+      background-color: white;
+    }
+    .html-content table {
+      max-width: 100%;
+    }
+    .html-content img {
+      max-width: 100%;
+      height: auto;
+    }
+    .html-content * {
+      max-width: 100%;
+    }
+    .html-frame {
+      width: 100%;
+      border: none;
+      min-height: 300px;
+    }
+    
+    /* Адаптивные стили */
+    @media (max-width: 767.98px) {
+      h3 {
+        font-size: 1.5rem;
+      }
+      .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .card-header small {
+        margin-top: 0.5rem;
+      }
+      .pagination-nav {
+        flex-direction: column;
+        gap: 10px;
+      }
+      .pagination-nav > * {
+        width: 100%;
+      }
+      .pagination-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: space-between;
+      }
+      .pagination-buttons .btn {
+        flex: 1;
+      }
+      .email-headers p {
+        overflow-wrap: break-word;
+        word-wrap: break-word;
+      }
+      .email-content {
+        overflow-x: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container mt-4">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Главная</a></li>
+        <li class="breadcrumb-item"><a href="/emails">Входящие сообщения</a></li>
+        <li class="breadcrumb-item active text-truncate" aria-current="page" style="max-width: 250px;"><%= email.subject || 'Без темы' %></li>
+      </ol>
+    </nav>
+
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0 text-break"><%= email.subject || 'Без темы' %></h3>
+        <small><%= new Date(email.date).toLocaleString('ru-RU') %></small>
+      </div>
+      <div class="card-body">
+        <div class="email-headers mb-3">
+          <p><strong>От:</strong> <span class="text-break"><%= email.from %></span></p>
+          <p><strong>Кому:</strong> <span class="text-break"><%= email.to %></span></p>
+          <p><strong>Аккаунт:</strong> <span class="text-break"><%= email.accountName %></span></p>
+        </div>
+        
+        <hr>
+        
+        <div class="email-content mb-3">
+          <% if (email.hasHtml || 
+                 email.text.includes('<html') || 
+                 email.text.includes('<body') || 
+                 email.text.includes('<div') || 
+                 email.text.includes('<table') || 
+                 email.text.includes('<img')) { %>
+            
+            <% if (email.text.includes('<html') || email.text.includes('<body')) { %>
+              <div id="html-container"></div>
+              <script>
+                // Используем iframe для полноценного отображения HTML-письма
+                document.addEventListener('DOMContentLoaded', function() {
+                  const container = document.getElementById('html-container');
+                  const iframe = document.createElement('iframe');
+                  iframe.className = 'html-frame';
+                  iframe.setAttribute('sandbox', 'allow-same-origin');
+                  container.appendChild(iframe);
+                  
+                  const htmlContent = `<%= email.text.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n') %>`;
+                  
+                  const doc = iframe.contentDocument || iframe.contentWindow.document;
+                  doc.open();
+                  doc.write(htmlContent);
+                  doc.close();
+                  
+                  // Подстраиваем высоту iframe под содержимое
+                  function resizeIframe() {
+                    if (iframe.contentWindow && iframe.contentWindow.document.body) {
+                      const height = iframe.contentWindow.document.body.scrollHeight;
+                      iframe.style.height = (height + 20) + 'px';
+                    }
+                  }
+                  
+                  iframe.onload = resizeIframe;
+                  setTimeout(resizeIframe, 100);
+                  setTimeout(resizeIframe, 500);
+                  setTimeout(resizeIframe, 1000);
+                  window.addEventListener('resize', resizeIframe);
+                });
+              </script>
+            <% } else { %>
+              <div class="html-content">
+                <%- email.text %>
+              </div>
+            <% } %>
+            
+          <% } else { %>
+            <div class="text-content text-break">
+              <%= email.text.replace(/\n/g, '<br>').replace(/\r/g, '') %>
+            </div>
+          <% } %>
+        </div>
+        
+        <% if (email.attachments && email.attachments.length > 0) { %>
+          <hr>
+          <div class="email-attachments">
+            <h5>Вложения:</h5>
+            <div class="list-group">
+              <% email.attachments.forEach(attachment => { %>
+                <a href="<%= attachment.path %>" class="list-group-item list-group-item-action text-break" target="_blank">
+                  <i class="bi bi-paperclip"></i> <%= attachment.filename %>
+                </a>
+              <% }); %>
+            </div>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
+    <div class="pagination-nav mb-4">
+      <% if (index > 0) { %>
+        <a href="/email/<%= sessionId %>/<%= index - 1 %>" class="btn btn-outline-primary">
+          <i class="bi bi-arrow-left"></i> Предыдущее письмо
+        </a>
+      <% } else { %>
+        <button class="btn btn-outline-secondary" disabled>
+          <i class="bi bi-arrow-left"></i> Предыдущее письмо
+        </button>
+      <% } %>
+
+      <div class="text-center pagination-buttons">
+        <a href="/emails" class="btn btn-outline-secondary">
+          <i class="bi bi-list"></i> К списку писем
+        </a>
+        <button class="btn btn-outline-primary" onclick="window.print()">
+          <i class="bi bi-printer"></i> Печать
+        </button>
+      </div>
+
+      <% if (index < totalEmails - 1) { %>
+        <a href="/email/<%= sessionId %>/<%= index + 1 %>" class="btn btn-outline-primary">
+          Следующее письмо <i class="bi bi-arrow-right"></i>
+        </a>
+      <% } else { %>
+        <button class="btn btn-outline-secondary" disabled>
+          Следующее письмо <i class="bi bi-arrow-right"></i>
+        </button>
+      <% } %>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

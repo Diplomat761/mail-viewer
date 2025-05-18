@@ -154,8 +154,39 @@ app.get('/emails', (req, res) => {
     console.log(`Всего получено писем: ${allEmails.length}`);
     // Сортируем письма по дате (новые в начале)
     allEmails.sort((a, b) => new Date(b.date) - new Date(a.date));
-    res.render('emails', { emails: allEmails });
+    
+    // Сохраняем письма в сессии для доступа через отдельный маршрут
+    if (!app.locals.emails) {
+      app.locals.emails = {};
+    }
+    
+    // Генерируем уникальный идентификатор сессии
+    const sessionId = Date.now().toString();
+    app.locals.emails[sessionId] = allEmails;
+    
+    res.render('emails', { emails: allEmails, sessionId });
   });
+});
+
+// Просмотр отдельного письма
+app.get('/email/:sessionId/:index', (req, res) => {
+  const { sessionId, index } = req.params;
+  const idx = parseInt(index, 10);
+  
+  // Проверяем наличие данных сессии и валидность индекса
+  if (!app.locals.emails || !app.locals.emails[sessionId]) {
+    return res.redirect('/emails?error=Данные писем недоступны');
+  }
+  
+  const emails = app.locals.emails[sessionId];
+  
+  if (idx < 0 || idx >= emails.length) {
+    return res.redirect('/emails?error=Письмо не найдено');
+  }
+  
+  const email = emails[idx];
+  
+  res.render('email-detail', { email, sessionId, index: idx, totalEmails: emails.length });
 });
 
 // Форма отправки письма
@@ -286,13 +317,16 @@ function fetchEmails(account, callback) {
             const emails = [];
             
             // Создаем поток для получения писем
-            const f = imap.fetch(results, { bodies: '' });
+            const f = imap.fetch(results, { bodies: ['HEADER', 'TEXT', ''] });
             
             f.on('message', (msg, seqno) => {
               console.log(`Начало обработки письма #${seqno}`);
               
               // Создаем промис для каждого сообщения
               const messagePromise = new Promise((resolve, reject) => {
+                const emailData = { id: seqno };
+                let fullMessage = '';
+                
                 msg.on('body', (stream, info) => {
                   let buffer = '';
                   
@@ -301,54 +335,72 @@ function fetchEmails(account, callback) {
                   });
                   
                   stream.once('end', () => {
-                    // Парсим письмо
-                    simpleParser(buffer)
-                      .then(mail => {
-                        console.log(`Успешно обработано письмо #${seqno}`);
+                    // Сохраняем полное сообщение для парсинга
+                    if (info.which === '') {
+                      fullMessage = buffer;
+                    }
+                  });
+                });
+                
+                msg.once('end', () => {
+                  // Парсим письмо
+                  simpleParser(fullMessage)
+                    .then(mail => {
+                      console.log(`Успешно обработано письмо #${seqno}`);
+                      
+                      // Сохраняем вложения
+                      const attachmentInfo = [];
+                      if (mail.attachments && mail.attachments.length > 0) {
+                        console.log(`Письмо #${seqno} имеет ${mail.attachments.length} вложений`);
                         
-                        // Сохраняем вложения
-                        const attachmentInfo = [];
-                        if (mail.attachments && mail.attachments.length > 0) {
-                          console.log(`Письмо #${seqno} имеет ${mail.attachments.length} вложений`);
-                          
-                          // Создаем папку для вложений, если она не существует
-                          const accountFolder = account.email.replace(/[@.]/g, '_');
-                          const attachmentDir = path.join(__dirname, 'attachments', accountFolder);
-                          
-                          if (!fs.existsSync(attachmentDir)) {
-                            fs.mkdirSync(attachmentDir, { recursive: true });
-                          }
-                          
-                          mail.attachments.forEach((attachment, index) => {
-                            const filename = `${seqno}_${index}_${attachment.filename}`;
-                            const filePath = path.join(attachmentDir, filename);
-                            fs.writeFileSync(filePath, attachment.content);
-                            attachmentInfo.push({
-                              filename: attachment.filename,
-                              path: `/attachments/${accountFolder}/${filename}`
-                            });
-                          });
+                        // Создаем папку для вложений, если она не существует
+                        const accountFolder = account.email.replace(/[@.]/g, '_');
+                        const attachmentDir = path.join(__dirname, 'attachments', accountFolder);
+                        
+                        if (!fs.existsSync(attachmentDir)) {
+                          fs.mkdirSync(attachmentDir, { recursive: true });
                         }
                         
-                        // Сохраняем информацию о письме
-                        const email = {
-                          id: seqno,
-                          from: mail.from?.text || 'Неизвестный отправитель',
-                          to: mail.to?.text || 'Неизвестный получатель',
-                          subject: mail.subject || 'Без темы',
-                          date: mail.date,
-                          text: mail.text || mail.html || 'Нет текста письма',
-                          attachments: attachmentInfo
-                        };
-                        
-                        emails.push(email);
-                        resolve();
-                      })
-                      .catch(error => {
-                        console.error(`Ошибка при парсинге письма #${seqno}:`, error);
-                        resolve(); // Разрешаем промис даже при ошибке, чтобы не блокировать другие письма
-                      });
-                  });
+                        mail.attachments.forEach((attachment, index) => {
+                          const filename = `${seqno}_${index}_${attachment.filename}`;
+                          const filePath = path.join(attachmentDir, filename);
+                          fs.writeFileSync(filePath, attachment.content);
+                          attachmentInfo.push({
+                            filename: attachment.filename,
+                            path: `/attachments/${accountFolder}/${filename}`
+                          });
+                        });
+                      }
+                      
+                      // Определяем HTML-содержимое письма
+                      let messageText = '';
+                      if (mail.html) {
+                        messageText = mail.html;
+                      } else if (mail.text) {
+                        messageText = mail.text;
+                      } else {
+                        messageText = 'Нет текста письма';
+                      }
+                      
+                      // Сохраняем информацию о письме
+                      const email = {
+                        id: seqno,
+                        from: mail.from?.text || 'Неизвестный отправитель',
+                        to: mail.to?.text || 'Неизвестный получатель',
+                        subject: mail.subject || 'Без темы',
+                        date: mail.date,
+                        text: messageText,
+                        hasHtml: !!mail.html,
+                        attachments: attachmentInfo
+                      };
+                      
+                      emails.push(email);
+                      resolve();
+                    })
+                    .catch(error => {
+                      console.error(`Ошибка при парсинге письма #${seqno}:`, error);
+                      resolve(); // Разрешаем промис даже при ошибке, чтобы не блокировать другие письма
+                    });
                 });
                 
                 msg.once('error', err => {
