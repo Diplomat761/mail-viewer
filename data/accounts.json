@@ -1,0 +1,24 @@
+[
+  {
+    "email": "borisova@vnukm.com",
+    "password": "!eV^fs9UpXPgr*DphR(wFOtu",
+    "name": "borisova",
+    "imapHost": "mail.1vps.tech",
+    "imapPort": 993,
+    "smtpHost": "mail.1vps.tech",
+    "smtpPort": 465,
+    "id": "1747502662601",
+    "active": false
+  },
+  {
+    "email": "info@vnukm.com",
+    "password": "KxwcXodDSpoJpl$9^aulVx66",
+    "name": "info",
+    "imapHost": "mail.1vps.tech",
+    "imapPort": 993,
+    "smtpHost": "mail.1vps.tech",
+    "smtpPort": 465,
+    "id": "1747503155254",
+    "active": true
+  }
+]

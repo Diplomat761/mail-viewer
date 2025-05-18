@@ -1,0 +1,212 @@
+/* Основные стили */
+:root {
+  --primary-color: #4361ee;
+  --primary-hover: #3a56d4;
+  --secondary-color: #7209b7;
+  --accent-color: #f72585;
+  --light-bg: #f8f9fa;
+  --card-bg: #ffffff;
+  --text-color: #212529;
+  --text-muted: #6c757d;
+  --border-radius: 8px;
+  --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --transition: all 0.3s ease;
+}
+
+body {
+  font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--light-bg);
+  color: var(--text-color);
+  line-height: 1.6;
+  padding-bottom: 40px;
+}
+
+.container {
+  max-width: 1200px;
+  padding: 0 15px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+/* Карточки и контейнеры */
+.card {
+  border: none;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  transition: var(--transition);
+  overflow: hidden;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.card-body {
+  padding: 1.5rem;
+}
+
+.card-title {
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--primary-color);
+}
+
+/* Кнопки */
+.btn {
+  border-radius: 6px;
+  padding: 0.5rem 1.25rem;
+  font-weight: 500;
+  transition: var(--transition);
+  border: none;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+}
+
+.btn-success {
+  background-color: var(--secondary-color);
+}
+
+.btn-success:hover {
+  background-color: #620a9c;
+}
+
+/* Стили для списка писем */
+.list-group-item {
+  transition: var(--transition);
+  border-left: none;
+  border-right: none;
+  padding: 1rem;
+}
+
+.list-group-item:hover {
+  background-color: rgba(67, 97, 238, 0.05);
+}
+
+.list-group-item.active {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.list-group-item p {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 0.25rem;
+}
+
+/* Стили для содержимого письма */
+.email-content {
+  box-shadow: var(--box-shadow);
+  border-radius: var(--border-radius);
+  background-color: var(--card-bg);
+}
+
+.email-body {
+  font-size: 1rem;
+  line-height: 1.6;
+  padding: 1.5rem;
+  background-color: var(--card-bg);
+  border-radius: var(--border-radius);
+  min-height: 240px;
+}
+
+.html-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.text-content {
+  white-space: pre-wrap;
+}
+
+/* Стили для формы отправки письма */
+.form-control {
+  border-radius: 6px;
+  padding: 0.625rem 1rem;
+  border-color: #dee2e6;
+  transition: var(--transition);
+}
+
+.form-control:focus {
+  box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+  border-color: var(--primary-color);
+}
+
+textarea.form-control {
+  resize: vertical;
+  min-height: 180px;
+}
+
+/* Стили для вложений */
+.email-attachments .list-group-item {
+  font-size: 0.9rem;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.email-attachments .list-group-item:before {
+  content: "📎";
+  margin-right: 0.5rem;
+}
+
+/* Отзывчивый дизайн */
+@media (max-width: 992px) {
+  .container {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .col-md-4, .col-md-8, .col-md-6 {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+  
+  .card {
+    margin-bottom: 1rem;
+  }
+  
+  h1 {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .btn {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+  
+  .card-body {
+    padding: 1.25rem;
+    
+  }
+  
+  h1 {
+    font-size: 1.6rem;
+  }
+}
+
+/* Анимации и эффекты */
+.alert {
+  border-radius: var(--border-radius);
+  border: none;
+  box-shadow: var(--box-shadow);
+}
+
+.alert-success {
+  background-color: rgba(25, 135, 84, 0.1);
+  color: #198754;
+} 
